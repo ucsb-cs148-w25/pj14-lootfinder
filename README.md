@@ -9,7 +9,7 @@ An app where users can post bounties for things they have lost/need.
 
 1. Tyler Chou TylerChou
 
-1. Michael Jiang michaelljiang
+1. Michael Jiang michaelljiang - HelloWorld uses Next.js Framework
 
 1. Ajay Liu ajayliu
 
