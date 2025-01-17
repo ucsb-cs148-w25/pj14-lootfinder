@@ -6,6 +6,7 @@ LootFinder is a web application designed to help users find and sell cheap items
 
 **App Type:** Location-based web application  
 **Tech Stack:** Vite, Vue.js, Firebase, Vercel
+
 We chose this stack because it’s simple and gets the job done. Vite is fast for development, Vue.js makes building the UI easy, Firebase handles the backend like auth and data storage, and Vercel simplifies deployment. 
 
 ## About LootFinder
