@@ -14,3 +14,5 @@ An app where users can post bounties for things they have lost/need.
 1. Ajay Liu ajayliu
 
 1. Max Chang Max-Changg
+
+Note: This "Hello World" demo uses the React and Next.js tech stack.
