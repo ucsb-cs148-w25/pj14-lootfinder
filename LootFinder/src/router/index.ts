@@ -7,6 +7,7 @@ import { auth } from '@/firebase'; // Import Firebase Auth
 import UserProfile from '@/views/UserProfile.vue';
 import BrowseOffers from '@/views/BrowseOffers.vue';
 import UpdateOffers from '@/views/UpdateOffers.vue';
+import SearchBar from '@/views/SearchBar.vue';
 import ChatView from '@/views/ChatView.vue';
 import Inbox from '@/views/Inbox.vue';
 
@@ -20,6 +21,11 @@ const routes = [
     path: '/login',
     name: 'Login',
     component: Login,
+  },
+  {
+    path: '/search-bar',
+    name: 'Search Bar',
+    component: SearchBar,
   },
   {
     path: '/dashboard',
