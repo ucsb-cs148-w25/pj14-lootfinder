@@ -73,10 +73,40 @@
       />
     </div>
   </div>
+  
+  <div v-if="editItem">
+  <!-- Edit Modal (Shown only if editing is enabled) -->
+  <div class="fixed inset-0 z-50 flex justify-center items-center">
+    <div class="flex flex-col max-w-5xl rounded-lg shadow-lg bg-white">
+      <!-- Header -->
+      <div class="p-2">
+        <div class="flex justify-between items-start">
+          <h3 class="text-2xl font-bold">Developer Editing</h3>
+        </div>
+      </div>
+
+      <div class="bg-white p-2 rounded-lg shadow-lg w-96">
+      <h2 class="text-xl font-bold mb-4">Edit Offer</h2>
+      <input v-model="editItem.title" class="w-full p-2 border rounded mb-2" placeholder="Title" />
+      <input v-model="editItem.price" type="number" class="w-full p-2 border rounded mb-2" placeholder="Price" />
+      <textarea v-model="editItem.description" class="w-full p-2 border rounded mb-2" placeholder="Description"></textarea>
+      <div class="flex justify-between">
+        <button @click="saveEdit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Save</button>
+        <button @click="deleteOffer(editItem.id)" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Delete</button>
+        <button @click="editItem = null" class="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500">Cancel</button>
+      </div>
+    </div>
+    </div>
+  </div>
+
+  <!-- Background Overlay -->
+  <div class="opacity-25 fixed inset-0 z-40 bg-black"></div>
+  </div>
 </template>
 
 <script>
   import { getAuth, onAuthStateChanged } from 'firebase/auth';
+  
   import {
     collection,
     query,
