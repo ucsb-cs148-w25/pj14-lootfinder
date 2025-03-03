@@ -55,16 +55,10 @@
           >
             Select Image
           </label>
-          <input
-            type="file"
-            id="image"
-            class="hidden"
-            @change="handleFileUpload"
-          />
-          <span v-if="fileName" class="my-1 text-sm text-border">
-            {{ fileName }}
-          </span>
+          <input type="file" id="image" class="hidden" @change="handleFileUpload"/>
+          <span v-if="fileName" class="my-1 text-sm text-border">{{ fileName }}</span>
         </div>
+        <span v-if="imageError" class="text-red-500 text-sm">{{ imageError}}</span>
       </div>
       <!-- ************************** Title ********************************* -->
       <div class="flex flex-col items-center">
@@ -74,6 +68,7 @@
         >
           Title
         </label>
+        <span v-if="titleError" class="text-red-500 text-sm">{{ titleError }}</span>
         <input
           type="text"
           id="title"
@@ -89,6 +84,7 @@
         >
           Give a Description
         </label>
+        <span v-if="descriptionError" class="text-red-500 text-sm">{{ descriptionError }}</span>
         <textarea
           id="description"
           v-model="form.description"
@@ -135,6 +131,9 @@
           class="border-border"
         />
       </div>
+      <div class="flex items-center justify-center">
+          <span v-if="priceError" class="text-red-500 text-sm">{{ priceError }}</span>
+      </div>
       <!-- ************************** Cancel/Submit ********************************* -->
       <div class="flex justify-center">
         <button
@@ -180,6 +179,10 @@
       const active = vueRef(false);
       const fileName = vueRef('');
       const locationError = vueRef('');
+      const titleError = vueRef('');
+      const descriptionError = vueRef('');
+      const priceError = vueRef('');
+      const imageError = vueRef('');
       const toggleActive = () => {
         active.value = !active.value;
       };
@@ -187,6 +190,10 @@
         active,
         fileName,
         locationError,
+        titleError,
+        descriptionError,
+        priceError,
+        imageError,
         toggleActive,
       };
     },
@@ -213,8 +220,33 @@
         this.locationError = '';
       },
       async handleSubmit() {
-        if (!this.form.latitude || !this.form.longitude) {
+        this.titleError = '';
+        this.descriptionError = '';
+        this.priceError = '';
+        this.imageError = '';
+
+        if (!this.form.title.trim()) {
+          this.titleError = 'Title is required.';
+        }
+
+        if (!this.form.description.trim()) {
+          this.descriptionError = 'Description is required.';
+        }
+
+        if (this.form.price === null || this.form.price < 0) {
+          this.priceError = 'Price is required and must be positive.';
+        }
+
+        if (!this.form.latitude || !this.form.longitude){
           this.locationError = 'Please select a location.';
+        }
+
+        if(!this.form.image){
+          this.imageError= 'Image is required.';
+        }
+
+       if (this.titleError || this.descriptionError || this.priceError || this.locationError || this.imageError) {
+          return;
         }
         try {
           // handle Image upload to Firestore storage
