@@ -26,6 +26,14 @@
         placeholder="Max Price"
         class="w-full sm:w-32 p-2 border border-gray-300 rounded shadow-sm focus:outline-none focus:ring focus:border-blue-300"
       />
+
+      <!-- Distance Filter Popup -->
+      <DistanceFilterPopup
+        :currentRadius="radius"
+        :currentLocation="userLocation"
+        @update-filter="handleDistanceFilter"
+      />
+
       <button
         @click="resetFilters"
         class="w-full sm:w-auto p-2 bg-[#ea7643] text-white rounded shadow hover:bg-[#eb8e65] transition"
@@ -58,6 +66,21 @@
       />
     </div>
 
+    <!-- Distance Filter Indicator -->
+    <div v-if="userLocation && radius" class="mb-4 text-center">
+      <div
+        class="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full"
+      >
+        Filtering by: {{ radius }}km radius
+        <button
+          @click="clearDistanceFilter"
+          class="ml-2 text-red-600 hover:text-red-800"
+        >
+          ×
+        </button>
+      </div>
+    </div>
+
     <!-- Offers List -->
     <div class="flex flex-wrap justify-center items-stretch gap-10">
       <OfferCard
@@ -73,40 +96,68 @@
       />
     </div>
   </div>
-  
+
   <div v-if="editItem">
-  <!-- Edit Modal (Shown only if editing is enabled) -->
-  <div class="fixed inset-0 z-50 flex justify-center items-center">
-    <div class="flex flex-col max-w-5xl rounded-lg shadow-lg bg-white">
-      <!-- Header -->
-      <div class="p-2">
-        <div class="flex justify-between items-start">
-          <h3 class="text-2xl font-bold">Developer Editing</h3>
+    <!-- Edit Modal (Shown only if editing is enabled) -->
+    <div class="fixed inset-0 z-50 flex justify-center items-center">
+      <div class="flex flex-col max-w-5xl rounded-lg shadow-lg bg-white">
+        <!-- Header -->
+        <div class="p-2">
+          <div class="flex justify-between items-start">
+            <h3 class="text-2xl font-bold">Developer Editing</h3>
+          </div>
+        </div>
+
+        <div class="bg-white p-2 rounded-lg shadow-lg w-96">
+          <h2 class="text-xl font-bold mb-4">Edit Offer</h2>
+          <input
+            v-model="editItem.title"
+            class="w-full p-2 border rounded mb-2"
+            placeholder="Title"
+          />
+          <input
+            v-model="editItem.price"
+            type="number"
+            class="w-full p-2 border rounded mb-2"
+            placeholder="Price"
+          />
+          <textarea
+            v-model="editItem.description"
+            class="w-full p-2 border rounded mb-2"
+            placeholder="Description"
+          ></textarea>
+          <div class="flex justify-between">
+            <button
+              @click="saveEdit"
+              class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+            >
+              Save
+            </button>
+            <button
+              @click="deleteOffer(editItem.id)"
+              class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+            >
+              Delete
+            </button>
+            <button
+              @click="editItem = null"
+              class="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       </div>
-
-      <div class="bg-white p-2 rounded-lg shadow-lg w-96">
-      <h2 class="text-xl font-bold mb-4">Edit Offer</h2>
-      <input v-model="editItem.title" class="w-full p-2 border rounded mb-2" placeholder="Title" />
-      <input v-model="editItem.price" type="number" class="w-full p-2 border rounded mb-2" placeholder="Price" />
-      <textarea v-model="editItem.description" class="w-full p-2 border rounded mb-2" placeholder="Description"></textarea>
-      <div class="flex justify-between">
-        <button @click="saveEdit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Save</button>
-        <button @click="deleteOffer(editItem.id)" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Delete</button>
-        <button @click="editItem = null" class="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500">Cancel</button>
-      </div>
     </div>
-    </div>
-  </div>
 
-  <!-- Background Overlay -->
-  <div class="opacity-25 fixed inset-0 z-40 bg-black"></div>
+    <!-- Background Overlay -->
+    <div class="opacity-25 fixed inset-0 z-40 bg-black"></div>
   </div>
 </template>
 
 <script>
   import { getAuth, onAuthStateChanged } from 'firebase/auth';
-  
+
   import {
     collection,
     query,
@@ -118,15 +169,17 @@
     deleteDoc,
   } from 'firebase/firestore';
   import { db } from '@/firebase';
-  import { fetchItemWithSeller } from '@/firebaseService'; // Import the function
+  import { fetchItemWithSeller } from '@/firebaseService';
   import OfferCard from '@/components/OfferCard.vue';
   import BrowseMap from '@/components/BrowseMap.vue';
+  import DistanceFilterPopup from '@/components/DistanceFilterPopup.vue';
 
   export default {
     name: 'BrowseOffers',
     components: {
       OfferCard,
       BrowseMap,
+      DistanceFilterPopup,
     },
     data() {
       return {
@@ -137,23 +190,36 @@
         isAdmin: false, // Only admins can edit
         editItem: null, // Holds the offer being edited
         selectedOffer: null, // Holds the offer selected on the map
+        userLocation: null,
+        radius: null,
       };
     },
     computed: {
       filteredOffers() {
         return this.offers.filter((offer) => {
-          // Check if the offer title includes the search term (case insensitive)
           const matchesSearch = this.searchTerm
             ? offer.title.toLowerCase().includes(this.searchTerm.toLowerCase())
             : true;
-          // Check if the offer's price is within the min and max price range
           const matchesMinPrice =
             this.minPrice != null ? offer.price >= this.minPrice : true;
           const matchesMaxPrice =
             this.maxPrice != null ? offer.price <= this.maxPrice : true;
 
+          const offerLocation = {
+            lat: offer.latitude,
+            lng: offer.longitude,
+          };
+          const matchesDistance =
+            this.userLocation && this.radius && offerLocation
+              ? this.calculateDistance(this.userLocation, offerLocation) <=
+                this.radius
+              : true; // If no radius is set, don't filter by it
+
           return (
-            !offer.sold && matchesSearch && matchesMinPrice && matchesMaxPrice
+            matchesSearch &&
+            matchesMinPrice &&
+            matchesMaxPrice &&
+            matchesDistance
           );
         });
       },
@@ -182,10 +248,46 @@
           console.error('Error fetching active offers:', error.message);
         }
       },
+      handleDistanceFilter(filterData) {
+        this.userLocation = filterData.location;
+        this.radius = filterData.radius;
+      },
+      clearDistanceFilter() {
+        this.userLocation = null;
+        this.radius = null;
+      },
+      calculateDistance(loc1, loc2) {
+        if (
+          !loc1 ||
+          !loc2 ||
+          !loc1.lat ||
+          !loc1.lng ||
+          !loc2.lat ||
+          !loc2.lng
+        ) {
+          return Infinity; // Prevent filtering out all offers
+        }
+
+        const R = 6371; // Radius of Earth in km
+        const dLat = (loc2.lat - loc1.lat) * (Math.PI / 180);
+        const dLon = (loc2.lng - loc1.lng) * (Math.PI / 180);
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(loc1.lat * (Math.PI / 180)) *
+            Math.cos(loc2.lat * (Math.PI / 180)) *
+            Math.sin(dLon / 2) *
+            Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return R * c; // Distance in km
+      },
+
       resetFilters() {
         this.searchTerm = '';
         this.minPrice = null;
         this.maxPrice = null;
+        this.userLocation = null;
+        this.radius = null;
       },
       async checkAdminStatus() {
         const auth = getAuth();
